@@ -40,7 +40,7 @@ def envelope_spectrum(data):
     freqs = np.fft.rfftfreq(nfft, 1 / fs)
     return freqs, spec
 
-
+# median power spectral density by class
 f, P = signal.welch(X, fs=fs, nperseg=1024, axis=1)
 
 plt.figure(figsize=(9, 5))
@@ -54,7 +54,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(OUT_DIR, '02_power_spectral_density.png'), dpi=150)
 plt.close()
 
-
+# spectograms
 fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharey=True)
 for ax, c in zip(axes, classes):
     fspec, tspec, S = signal.spectrogram(X[example[c]], fs=fs, nperseg=256, noverlap=224)
@@ -67,7 +67,7 @@ fig.suptitle('Spectrograms by Class', y=1.03)
 plt.savefig(os.path.join(OUT_DIR, '03_spectrograms.png'), dpi=150, bbox_inches='tight')
 plt.close()
 
-
+# mean envelope spectrum with BPFO/BPFI harmonics
 fe, E = envelope_spectrum(X)
 keep = fe <= 420
 
@@ -89,7 +89,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(OUT_DIR, '04_envelope_spectrum.png'), dpi=150)
 plt.close()
 
-
+# simple PCA
 _, P_train = signal.welch(X, fs=fs, nperseg=512, axis=1)
 _, P_test = signal.welch(X_test, fs=fs, nperseg=512, axis=1)
 log_train = np.log10(P_train)
