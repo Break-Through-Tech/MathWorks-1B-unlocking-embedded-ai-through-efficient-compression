@@ -1,3 +1,4 @@
+# SVM baseline on the raw signals and FFT features
 import numpy as np
 from pathlib import Path
 from sklearn.svm import SVC

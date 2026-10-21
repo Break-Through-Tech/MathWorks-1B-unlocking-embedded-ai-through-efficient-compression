@@ -1,4 +1,4 @@
-""" Standardize the bearing data and save it for training"""
+# Standardizes the raw signals and saves them for training.
 from pathlib import Path
 import numpy as np
 import scipy.io

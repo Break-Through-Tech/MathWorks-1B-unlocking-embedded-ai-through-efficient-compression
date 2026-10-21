@@ -1,3 +1,4 @@
+# Early single-run training script for the 1D CNN
 import torch
 import torch.nn as nn
 import time
@@ -6,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from model import CNN
+from common import predict, get_accuracy
+from model import SpecCNN
 
 HERE = Path(__file__).resolve().parent
 
@@ -33,53 +37,15 @@ train_loader = make_loader(X_train, y_train, shuffle=True)
 val_loader = make_loader(X_val, y_val, shuffle=False)
 test_loader = make_loader(X_test, y_test, shuffle=False)
 
-# Building the neural network
-class CNN(nn.Module):
-    def __init__(self, num_classes=3):
-        super().__init__()
-        # Look for patterns in the signal
-        self.features = nn.Sequential(
-            nn.Conv1d(1, 8, kernel_size=64, stride=8),
-            nn.BatchNorm1d(8),
-            nn.ReLU(),
-            nn.MaxPool1d(2),
+print("SpecCNN")
+m = SpecCNN()
+print(sum(p.numel() for p in m.parameters()))
+print(m(torch.zeros(2, 1, 65, 77)).shape)
 
-            nn.Conv1d(8, 16, kernel_size=16),
-            nn.BatchNorm1d(16),
-            nn.ReLU(),
-            nn.MaxPool1d(2),
-
-            nn.Conv1d(16, 32, kernel_size=8),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool1d(1),
-        )
-        # Turn those patterns into one score per class
-        self.classifier = nn.Linear(32, num_classes)
-
-    def forward(self, x):
-        x = self.features(x)
-        x = x.flatten(1)
-        return self.classifier(x)
-
+print("CNN")
 model = CNN()
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-
-def predict(loader):
-    """Return the model's guesses and the true labels for a data loader"""
-    model.eval()
-    guesses, truth = [], []
-    with torch.no_grad():
-        for X, y in loader:
-            guesses.append(model(X).argmax(dim=1))
-            truth.append(y)
-    return torch.cat(guesses), torch.cat(truth)
-
-def get_accuracy(loader):
-    """Fraction of signals in this loader that the model gets right"""
-    guesses, truth = predict(loader)
-    return (guesses == truth).float().mean().item()
 
 # Train model
 for epoch in range(1, EPOCHS + 1):
@@ -90,13 +56,13 @@ for epoch in range(1, EPOCHS + 1):
         loss.backward()
         optimizer.step()
 
-    print(f"epoch {epoch}: val accuracy {get_accuracy(val_loader):.3f}")
+    print(f"epoch {epoch}: val accuracy {get_accuracy(model, val_loader):.3f}")
 
 # Results
-test_accuracy = get_accuracy(test_loader)
+test_accuracy = get_accuracy(model, test_loader)
 print(f"test accuracy: {test_accuracy:.3f}")
 
-guesses, truth = predict(test_loader)
+guesses, truth = predict(model, test_loader)
 matrix = confusion_matrix(truth, guesses)
 print(matrix)
 ConfusionMatrixDisplay(matrix, display_labels=CLASS_NAMES).plot(xticks_rotation=20)
