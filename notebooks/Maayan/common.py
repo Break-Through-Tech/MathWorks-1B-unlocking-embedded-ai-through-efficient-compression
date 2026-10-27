@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -6,6 +8,8 @@ from torch.optim import Adam
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+
+CLASS_NAMES = ["InnerRaceFault", "Normal", "OuterRaceFault"]
 
 
 class PrepData:
@@ -60,37 +64,36 @@ class PrepData:
         return train_loader, val_loader, test_loader
 
 
-class FaultCNN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=8, kernel_size=7)
-        self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool1d(kernel_size=4)
+class BaseFaultModel(nn.Module, ABC):
+    """Shared base for the fault-classification CNNs.
 
-        self.conv2 = nn.Conv1d(in_channels=8, out_channels=16, kernel_size=7)
-        self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool1d(kernel_size=4)
+    Subclasses define the architecture (layers in __init__ and forward) and may
+    override the optimizer hyperparameters below.
+    """
 
-        self.global_pool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(16, 3)
+    num_classes = 3
+    learning_rate = 1e-3
+    weight_decay = 1e-4
 
+    @abstractmethod
     def forward(self, x):
-        x = self.pool1(self.relu1(self.conv1(x)))
-        x = self.pool2(self.relu2(self.conv2(x)))
-        x = self.global_pool(x)
-        x = x.squeeze(-1)
-        x = self.fc(x)
-
-        return x
+        """x: (batch, 1, 5000) -> logits: (batch, num_classes)"""
 
     def loss_optimizer(self):
         criterion = nn.CrossEntropyLoss()
-        optimizer = Adam(self.parameters(), lr=1e-3, weight_decay=1e-4)
+        optimizer = Adam(
+            self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+        )
 
         return criterion, optimizer
 
+    def count_params(self):
+        return sum(p.numel() for p in self.parameters())
 
-def training_loop(model, train_loader, val_loader, criterion, optimizer, num_epochs=50):
+
+def training_loop(
+    model, train_loader, val_loader, criterion, optimizer, checkpoint_path, num_epochs=50
+):
     best_val_acc = 0
 
     for epoch in range(num_epochs):
@@ -125,12 +128,11 @@ def training_loop(model, train_loader, val_loader, criterion, optimizer, num_epo
 
         if val_accuracy > best_val_acc:
             best_val_acc = val_accuracy
-            torch.save(model.state_dict(), "notebooks/Maayan/best_model.pt")
+            torch.save(model.state_dict(), checkpoint_path)
 
 
-def test_model(test_loader):
-    model = FaultCNN()
-    model.load_state_dict(torch.load("notebooks/Maayan/best_model.pt"))
+def test_model(model, test_loader, checkpoint_path, confusion_matrix_path):
+    model.load_state_dict(torch.load(checkpoint_path))
     model.eval()
 
     all_predictions = []
@@ -148,16 +150,7 @@ def test_model(test_loader):
 
     print(f"test_accuracy = {test_accuracy:.4f}")
 
-    class_names = ["InnerRaceFault", "Normal", "OuterRaceFault"]
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=CLASS_NAMES)
     disp.plot(cmap="Blues")
-    plt.savefig("notebooks/Maayan/confusion_matrix.png")
+    plt.savefig(confusion_matrix_path)
     plt.close()
-
-
-    
-
-
-
-
-
