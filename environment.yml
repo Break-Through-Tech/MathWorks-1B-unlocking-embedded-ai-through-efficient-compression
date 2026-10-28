@@ -1,0 +1,50 @@
+name: mathworks1b
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+
+  # Core data / numerics
+  - numpy
+  - scipy
+  - pandas                    # helpful for .mat v7.3 files and saving models/arrays
+
+  # Visualization
+  - matplotlib
+  - seaborn
+
+  # Classical ML
+  - scikit-learn
+
+  # Signal processing (useful for vibration/FFT feature work)
+  - pywavelets
+  - librosa
+
+  # Notebooks
+  - jupyterlab
+  - ipykernel
+
+  # Dev / quality of life
+  - black
+  - pytest
+  - python-dotenv
+  - pyyaml
+  - pathlib
+
+  - pip
+  - pip:
+      # Deep learning — both frameworks included since compression tooling differs
+      - tensorflow>=2.19,<3.0
+      - tensorflow-model-optimization      # pruning + quantization-aware training
+      - tf2onnx                            # TF -> ONNX export
+
+      - torch==2.3.*
+      - torchvision==0.18.*
+      - torch-pruning                      # PyTorch pruning
+
+      # Model export / embedded inference
+      - onnx
+      - onnxruntime
+
+      # Model inspection / size profiling
+      - thop                               # FLOPs/param counting for PyTorch
