@@ -1,8 +1,8 @@
 import torch.nn as nn
 from notebooks.Maayan.common import PrepData, BaseFaultModel, training_loop, test_model
 
-CHECKPOINT_PATH = "notebooks/Maayan/largeCNN/large_model.pt"
-CONFUSION_MATRIX_PATH = "notebooks/Maayan/largeCNN/confusion_matrix.png"
+CHECKPOINT_PATH = "notebooks/Maayan/largeCNN/models/large_model_fp32.pt"
+CONFUSION_MATRIX_PATH = "notebooks/Maayan/largeCNN/results/confusion_matrix_fp32.png"
 
 
 class FaultCNNLarge(BaseFaultModel):

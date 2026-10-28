@@ -1,3 +1,5 @@
+import os
+import time
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -7,7 +9,12 @@ import torch.nn as nn
 from torch.optim import Adam
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import TensorDataset, DataLoader
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    precision_recall_fscore_support,
+)
 
 CLASS_NAMES = ["InnerRaceFault", "Normal", "OuterRaceFault"]
 
@@ -153,4 +160,73 @@ def test_model(model, test_loader, checkpoint_path, confusion_matrix_path):
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=CLASS_NAMES)
     disp.plot(cmap="Blues")
     plt.savefig(confusion_matrix_path)
+    plt.close()
+
+
+def benchmark_model(model, test_loader, checkpoint_path, latency_runs=200):
+    """Evaluate a model on the test set and report quality and size metrics.
+
+    Returns a dict with accuracy, macro and per-class precision/recall/F1,
+    total and non-zero param counts, dtype, size on disk, and median CPU
+    latency for a single sample.
+    """
+    model.eval()
+
+    all_predictions = []
+    all_labels = []
+
+    with torch.no_grad():
+        for batch_data, batch_labels in test_loader:
+            outputs = model(batch_data)
+            all_predictions.extend(outputs.argmax(dim=1).tolist())
+            all_labels.extend(batch_labels.tolist())
+
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        all_labels, all_predictions, labels=range(len(CLASS_NAMES)), zero_division=0
+    )
+
+    sample = next(iter(test_loader))[0][:1]
+    with torch.no_grad():
+        for _ in range(20):  # warmup
+            model(sample)
+        times = []
+        for _ in range(latency_runs):
+            start = time.perf_counter()
+            model(sample)
+            times.append(time.perf_counter() - start)
+
+    params = list(model.parameters())
+
+    return {
+        "accuracy": accuracy_score(all_labels, all_predictions),
+        "macro_precision": precision.mean(),
+        "macro_recall": recall.mean(),
+        "macro_f1": f1.mean(),
+        "per_class": {
+            name: {"precision": p, "recall": r, "f1": f}
+            for name, p, r, f in zip(CLASS_NAMES, precision, recall, f1)
+        },
+        "params": sum(p.numel() for p in params),
+        "nonzero_params": sum(int((p != 0).sum().item()) for p in params),
+        "dtype": str(params[0].dtype) if params else "int8 (quantized)",
+        "size_kb": os.path.getsize(checkpoint_path) / 1024,
+        "latency_ms": float(np.median(times)) * 1000,
+    }
+
+
+def save_confusion_matrix(model, test_loader, path):
+    """Plot and save the test-set confusion matrix for an already-loaded model."""
+    model.eval()
+
+    all_predictions = []
+    all_labels = []
+
+    with torch.no_grad():
+        for batch_data, batch_labels in test_loader:
+            all_predictions.extend(model(batch_data).argmax(dim=1).tolist())
+            all_labels.extend(batch_labels.tolist())
+
+    cm = confusion_matrix(all_labels, all_predictions)
+    ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=CLASS_NAMES).plot(cmap="Blues")
+    plt.savefig(path)
     plt.close()
