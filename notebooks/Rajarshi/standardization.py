@@ -1,3 +1,4 @@
+from pathlib import Path
 from scipy import io
 import scipy.stats as stats
 import numpy as np
@@ -11,10 +12,18 @@ from sklearn.metrics import classification_report, accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, accuracy_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix
 
-train = 'MathWorks-1B-unlocking-embedded-ai-through-efficient-compression/data/train.mat'
-test = 'MathWorks-1B-unlocking-embedded-ai-through-efficient-compression/data/test.mat'
-val = 'MathWorks-1B-unlocking-embedded-ai-through-efficient-compression/data/val.mat'
+# Build paths from this file's location so the script runs from any working directory
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = REPO_ROOT / 'data'
+OUTPUT_DIR = Path(__file__).resolve().parent     # images are saved next to this script
+
+train = DATA_DIR / 'train.mat'
+test = DATA_DIR / 'test.mat'
+val = DATA_DIR / 'val.mat'
 
 train_data = io.loadmat(train)
 test_data = io.loadmat(test)
@@ -127,14 +136,57 @@ svm_model = SVC(
     random_state=42
 )
 
+model = LogisticRegression()
+
+# Decision tree with default settings (no max_depth, so it grows until leaves are pure)
+# random_state fixes the tie-breaking between equally good splits so results are reproducible
+decisiontrees_model = DecisionTreeClassifier(random_state=42)
+
 # 5. Train the model
 svm_model.fit(X_train_metadata_standard, y_train)
+model.fit(X_train_metadata_standard, y_train)
+decisiontrees_model.fit(X_train_metadata_standard, y_train)
 
 # 6. Predict and Evaluate
 y_pred = svm_model.predict(X_test_metadata_standard)
+model_pred = model.predict(X_test_metadata_standard)
+decisiontrees_pred = decisiontrees_model.predict(X_test_metadata_standard)
 
-print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}\n")
+print("SVM (RBF) - Test Set")
+print(f"Train accuracy: {svm_model.score(X_train_metadata_standard, y_train):.4f}")
+print(f"Val accuracy:   {svm_model.score(X_val_metadata_standard, y_val):.4f}")
+print(f"Test accuracy:  {accuracy_score(y_test, y_pred):.4f}\n")
 print(classification_report(y_test, y_pred))
+print("Confusion matrix (rows = true, cols = predicted):")
+print(pd.DataFrame(confusion_matrix(y_test, y_pred, labels=svm_model.classes_),
+                   index=svm_model.classes_, columns=svm_model.classes_))
+print()
+
+# Logistic Regression stats
+# n_iter_ below max_iter (default 100) confirms the solver converged
+print("Logistic Regression - Test Set")
+print(f"Converged in {model.n_iter_[0]} iterations (max_iter={model.max_iter})")
+print(f"Train accuracy: {model.score(X_train_metadata_standard, y_train):.4f}")
+print(f"Val accuracy:   {model.score(X_val_metadata_standard, y_val):.4f}")
+print(f"Test accuracy:  {accuracy_score(y_test, model_pred):.4f}\n")
+print(classification_report(y_test, model_pred))
+print("Confusion matrix (rows = true, cols = predicted):")
+print(pd.DataFrame(confusion_matrix(y_test, model_pred, labels=model.classes_),
+                   index=model.classes_, columns=model.classes_))
+print()
+
+# Decision Tree stats
+# Depth and leaf count show how complex the fitted tree is
+print("Decision Tree - Test Set")
+print(f"Tree depth: {decisiontrees_model.get_depth()}, leaves: {decisiontrees_model.get_n_leaves()}")
+print(f"Train accuracy: {decisiontrees_model.score(X_train_metadata_standard, y_train):.4f}")
+print(f"Val accuracy:   {decisiontrees_model.score(X_val_metadata_standard, y_val):.4f}")
+print(f"Test accuracy:  {accuracy_score(y_test, decisiontrees_pred):.4f}\n")
+print(classification_report(y_test, decisiontrees_pred))
+print("Confusion matrix (rows = true, cols = predicted):")
+print(pd.DataFrame(confusion_matrix(y_test, decisiontrees_pred, labels=decisiontrees_model.classes_),
+                   index=decisiontrees_model.classes_, columns=decisiontrees_model.classes_))
+print()
 
 print("Original shape:", X_train.shape)
 print("Standardized shape:", X_train_std.shape)
@@ -167,6 +219,6 @@ ax.set_axisbelow(True)
 fig.patch.set_facecolor('#fcfcfb')
 ax.set_facecolor('#fcfcfb')
 fig.tight_layout()
-plt.savefig('MathWorks-1B-unlocking-embedded-ai-through-efficient-compression/standardized_zscore_histogram.png', dpi=150)
+plt.savefig(OUTPUT_DIR / 'standardized_zscore_histogram.png', dpi=150)
 plt.show()
 
