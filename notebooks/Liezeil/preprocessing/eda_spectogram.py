@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from spectro import make_all
 
 # Settings
-DATA_FILE = Path(__file__).parent / "standardized_global.npz"
+DATA_FILE = Path(__file__).resolve().parent.parent / "processed_data" / "standardized_global.npz"
 CLASS_NAMES = ["Normal", "InnerRaceFault", "OuterRaceFault"]
 
 FS = 48828   # sample rate in Hz
@@ -48,4 +48,4 @@ for c, (ax, name) in enumerate(zip(axes, CLASS_NAMES)):
     ax.set_xlabel("time window")
 axes[0].set_ylabel("frequency row")
 plt.tight_layout()
-plt.savefig(HERE / "spec_slide.png", dpi=200)
+plt.savefig(HERE.parent / "figures" / "spec_slide.png", dpi=200)
