@@ -1,2 +1,7 @@
+.venv/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
 .DS_Store
 __pycache__/
+notebooks/.jupyter/
