@@ -5,7 +5,7 @@ import scipy.io
 
 
 HERE = Path(__file__).resolve().parent # Folder this script lives in
-DATA_DIR = HERE.parent.parent / "data" # Repo's data folder
+DATA_DIR = HERE.parent.parent.parent / "data" # Repo's data folder
 
 CLASS_NAMES = ["Normal", "InnerRaceFault", "OuterRaceFault"]
 
@@ -42,8 +42,8 @@ for name, before, after in [("train", X_train, X_train_std),
 # Check: each class should show up about equally often in the train labels
 print("train label counts:", np.bincount(y_train))
 
-# Save everything for train.py
-np.savez(HERE / "standardized_global.npz",
+# Save everything for train_1d.py
+np.savez(HERE.parent / "processed_data" / "standardized_global.npz",
          X_train=X_train_std, y_train=y_train,
          X_val=X_val_std, y_val=y_val,
          X_test=X_test_std, y_test=y_test)

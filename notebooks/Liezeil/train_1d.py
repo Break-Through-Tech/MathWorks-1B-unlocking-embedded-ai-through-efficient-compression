@@ -18,22 +18,23 @@ LEARNING_RATE = 0.001
 SEEDS = [0, 1, 2, 3, 4]
 CLASS_NAMES = ["Normal", "InnerRaceFault", "OuterRaceFault"]
 
-data = np.load(HERE / DATA_FILE)
+data = np.load(HERE / "processed_data" / DATA_FILE)
 train_loader = make_loader(data["X_train"], data["y_train"], BATCH_SIZE, shuffle=True)
 val_loader = make_loader(data["X_val"], data["y_val"], BATCH_SIZE, shuffle=False)
 test_loader = make_loader(data["X_test"], data["y_test"], BATCH_SIZE, shuffle=False)
 
-test_accs, model = run_seeds(CNN, train_loader, val_loader, test_loader,
+test_accs, models = run_seeds(CNN, train_loader, val_loader, test_loader,
                              SEEDS, EPOCHS, LEARNING_RATE)
 print(f"mean {np.mean(test_accs):.3f}, std {np.std(test_accs):.3f}")
 
 # Save results so the comparison script can read them
-(HERE / "results_1d.json").write_text(json.dumps({"test_accs": test_accs}))
+(HERE / "results" / "results_1d.json").write_text(json.dumps({"test_accs": test_accs}))
 
 # Confusion matrix for the last seed's model
+model = models[-1]
 guesses, truth = predict(model, test_loader)
 matrix = confusion_matrix(truth, guesses)
 print(matrix)
 ConfusionMatrixDisplay(matrix, display_labels=CLASS_NAMES).plot(xticks_rotation=20)
 plt.tight_layout()
-plt.savefig(HERE / "confusion_matrix_1d_seeds.png", dpi=150)
+plt.savefig(HERE / "figures" / "confusion_matrix_1d_seeds.png", dpi=150)
