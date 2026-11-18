@@ -6,22 +6,22 @@ CONFUSION_MATRIX_PATH = "notebooks/Maayan/largeCNN/results/confusion_matrix_fp32
 
 
 class FaultCNNLarge(BaseFaultModel):
-    def __init__(self):
+    def __init__(self, widths=(16, 32, 64, 128)):
         super().__init__()
 
         def block(cin, cout, k):
                 return nn.Sequential(nn.Conv1d(cin, cout, k, padding=k // 2), nn.BatchNorm1d(cout), nn.ReLU(), nn.MaxPool1d(4))
 
         self.features = nn.Sequential(
-            block(1, 16, 7),
-            block(16, 32, 7),
-            block(32, 64, 5),
-            block(64, 128, 3)
+            block(1, widths[0], 7),
+            block(widths[0], widths[1], 7),
+            block(widths[1], widths[2], 5),
+            block(widths[2], widths[3], 3)
         )
 
         self.global_pool = nn.AdaptiveAvgPool1d(1)
         self.classifier = nn.Sequential(
-            nn.Linear(128, 64),
+            nn.Linear(widths[3], 64),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(64, self.num_classes)
