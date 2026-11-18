@@ -74,8 +74,9 @@ class Conv1DClassifier(nn.Module):
         self.conv1 = nn.Conv1d(1, c1, kernel_size=k1, padding=k1 // 2)
         self.conv2 = nn.Conv1d(c1, c2, kernel_size=k2, padding=k2 // 2)
         self.conv3 = nn.Conv1d(c2, c3, kernel_size=k3, padding=k3 // 2)
+        self.bn1, self.bn2, self.bn3 = nn.BatchNorm1d(c1), nn.BatchNorm1d(c2), nn.BatchNorm1d(c3)
         # Separate ReLU/pool instances rather than one reused module: eager-mode
-        # quantization fuses Conv+ReLU by module pair, and one shared instance
+        # quantization fuses Conv+BN+ReLU by module triple, and one shared instance
         # cannot be fused into three different convs.
         self.relu1, self.relu2, self.relu3 = nn.ReLU(), nn.ReLU(), nn.ReLU()
         self.pool1, self.pool2 = nn.MaxPool1d(2), nn.MaxPool1d(2)
@@ -83,9 +84,9 @@ class Conv1DClassifier(nn.Module):
         self.fc = nn.Linear(c3, num_classes)
 
     def forward(self, x):
-        x = self.pool1(self.relu1(self.conv1(x)))
-        x = self.pool2(self.relu2(self.conv2(x)))
-        x = self.relu3(self.conv3(x))
+        x = self.pool1(self.relu1(self.bn1(self.conv1(x))))
+        x = self.pool2(self.relu2(self.bn2(self.conv2(x))))
+        x = self.relu3(self.bn3(self.conv3(x)))
         x = self.global_pool(x).squeeze(-1)
         return self.fc(x)
 
