@@ -5,7 +5,9 @@ from torch.ao.quantization import QuantStub, DeQuantStub, fuse_modules, get_defa
 
 torch.backends.quantized.engine = "qnnpack"
 
-FUSE_GROUPS = [["0", "1", "2"], ["4", "5", "6"], ["8", "9", "10"]]
+
+def fuse_groups(features):
+    return [[str(i - 1), str(i), str(i + 1)] for i, m in enumerate(features) if isinstance(m, nn.BatchNorm2d)]
 
 
 class QuantModel(nn.Module):
@@ -24,7 +26,7 @@ class QuantModel(nn.Module):
 
 def quantize(model, calib_loader):
     model = copy.deepcopy(model).eval()
-    features = fuse_modules(model.features, FUSE_GROUPS)
+    features = fuse_modules(model.features, fuse_groups(model.features))
     quant_model = QuantModel(features, model.classifier).eval()
     quant_model.qconfig = get_default_qconfig("qnnpack")
     prepare(quant_model, inplace=True)
