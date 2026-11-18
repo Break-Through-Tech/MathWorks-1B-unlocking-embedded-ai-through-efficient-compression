@@ -5,7 +5,7 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 
 HERE = Path(__file__).resolve().parent
-data = np.load(HERE / "standardized_global.npz")
+data = np.load(HERE / "processed_data" / "standardized_global.npz")
 
 X_train, y_train = data["X_train"], data["y_train"]
 X_val, y_val = data["X_val"], data["y_val"]

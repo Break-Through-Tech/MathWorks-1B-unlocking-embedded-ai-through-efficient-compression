@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 from spectro import make_all
 
-DATA_FILE = Path(__file__).parent / "standardized_global.npz"
+DATA_FILE = Path(__file__).resolve().parent.parent / "processed_data" / "standardized_global.npz"
 N_FFT = 128
 HOP = 64
-OUT_FILE = Path(__file__).parent / "spectrograms_128.npz"
+OUT_FILE = Path(__file__).resolve().parent.parent / "processed_data" / "spectrograms_128.npz"
 
 data = np.load(DATA_FILE)
 spec_train = make_all(data["X_train"], N_FFT, HOP)

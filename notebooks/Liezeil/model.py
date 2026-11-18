@@ -31,20 +31,20 @@ class CNN(nn.Module):
         return self.classifier(x)
 
 class SpecCNN(nn.Module):
-    def __init__(self, num_classes=3):
+    def __init__(self, num_classes=3, conv1_filters=8, conv2_filters=16):
         super().__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(1, 8, kernel_size=3),
-            nn.BatchNorm2d(8),
+            nn.Conv2d(1, conv1_filters, kernel_size=3),
+            nn.BatchNorm2d(conv1_filters),
             nn.ReLU(),
             nn.MaxPool2d(2),
 
-            nn.Conv2d(8, 16, kernel_size=3),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(conv1_filters, conv2_filters, kernel_size=3),
+            nn.BatchNorm2d(conv2_filters),
             nn.ReLU(),
             nn.MaxPool2d(2),
 
-            nn.Conv2d(16, 32, kernel_size=3),
+            nn.Conv2d(conv2_filters, 32, kernel_size=3),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.AdaptiveAvgPool2d(1),
