@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 from model import SpecCNN
 from common import make_loader, get_accuracy, train_model, count_params, count_nonzero
-from prune_common import shrink, keep_largest
+from compress import shrink, keep_largest
 
 HERE = Path(__file__).resolve().parent
 BATCH_SIZE = 32

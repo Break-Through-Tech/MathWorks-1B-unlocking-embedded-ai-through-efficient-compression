@@ -4,8 +4,7 @@ import numpy as np
 from pathlib import Path
 from model import SpecCNN
 from common import make_loader, get_accuracy, train_model, ms_per_sample, count_params, flash_kb, ram_kb
-from projection_common import project_model
-from quant_common import quantize
+from compress import project_model, quantize
 
 HERE = Path(__file__).resolve().parent
 
@@ -17,6 +16,11 @@ INPUT_SHAPE = (1, 65, 77)
 FINE_TUNE_EPOCHS = 30
 FINE_TUNE_LR = 0.0005
 VARIANTS = [
+    ("c1_8_c2_16_r2_8_r3_16", 8, 16, {"conv2": 8, "conv3": 16}),
+    ("c1_8_c2_16_r2_4_r3_8", 8, 16, {"conv2": 4, "conv3": 8}),
+    ("c1_8_c2_16_r2_4_r3_4", 8, 16, {"conv2": 4, "conv3": 4}),
+    ("c1_8_c2_16_r2_2_r3_4", 8, 16, {"conv2": 2, "conv3": 4}),
+    ("c1_8_c2_16_r2_2_r3_2", 8, 16, {"conv2": 2, "conv3": 2}),
     ("c1_4_c2_4_r3_4", 4, 4, {"conv3": 4}),
     ("c1_4_c2_4_r3_2", 4, 4, {"conv3": 2}),
     ("c1_4_c2_4_r2_2_r3_2", 4, 4, {"conv2": 2, "conv3": 2}),
@@ -36,7 +40,8 @@ for name, f1, f2, ranks in VARIANTS:
     for seed in SEEDS:
         torch.manual_seed(seed)
         model = SpecCNN(conv1_filters=f1, conv2_filters=f2)
-        model.load_state_dict(torch.load(HERE / "weights" / f"spec_cnn_c1_{f1}_c2_{f2}_seed{seed}.pt"))
+        weights = "baseline" if (f1, f2) == (8, 16) else f"c1_{f1}_c2_{f2}"
+        model.load_state_dict(torch.load(HERE / "weights" / f"spec_cnn_{weights}_seed{seed}.pt"))
         model = project_model(model, ranks)
         train_model(model, train_loader, val_loader, FINE_TUNE_EPOCHS, FINE_TUNE_LR)
         model.eval()

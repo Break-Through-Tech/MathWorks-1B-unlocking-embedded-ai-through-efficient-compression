@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 from model import SpecCNN
 from common import make_loader, get_accuracy, ms_per_sample, count_params, flash_kb, ram_kb
-from quant_common import quantize
+from compress import quantize
 
 HERE = Path(__file__).resolve().parent
 
